@@ -397,7 +397,7 @@ namespace GeologyGraph2Excel
                                         DCBH.Add(dB.TextString);
                                     }
                                 }
-                                else//地铁院的变态，地层编号竟然是一堆散的文字放一起
+                                else//地铁院的，地层编号竟然是一堆等高散的文字放一起
                                 {
                                     foreach (IGrouping<double, DBText> g in a.GroupBy(n => Math.Round(n.Position.Y, 3)).OrderByDescending(n => n.Key).ToList())
                                     {
@@ -410,8 +410,42 @@ namespace GeologyGraph2Excel
                                     }
                                 }
                             }
-                            else if (tmp_DCBH_Group.Count() == 2)//带椭圆的地层编号
+                            else if (tmp_DCBH_Group.Count() >= 2)//带椭圆的地层编号
                             {
+                                List<List<DBText>> list_num = new List<List<DBText>>();
+                                for (int i = 0; i < tmp_DCBH_Group.Count(); i++)
+                                {
+                                    list_num.Add(tmp_DCBH_Group.ElementAt(i).OrderByDescending(n => n.Position.Y).ToList());
+                                }
+                                
+                                for (int i = 0; i < list_num[0].Count(); i++)
+                                {
+                                    string tmp_num = "";
+                                    tmp_num += list_num[0][i].TextString;
+                                    DBText mark = list_num[0][i];
+                                    bool find_subscript = false;
+                                    for (int j = 1; j < list_num.Count(); j++)
+                                    {
+                                        for (int k = 0; k < list_num[j].Count(); k++)
+                                        {
+                                            if(list_num[j][k].Position.Y <= mark.Position.Y + list_num[j][k].Height
+                                                && list_num[j][k].Position.Y >= mark.Position.Y - list_num[j][k].Height)
+                                            {
+                                                tmp_num += "-" + list_num[j][k].TextString;
+                                                mark = list_num[j][k];
+                                                find_subscript = true;
+                                                break;
+                                            }
+                                        }
+                                        if (find_subscript == false)
+                                        {
+                                            break;
+                                        }
+                                        find_subscript = false;
+                                    }
+                                    DCBH.Add(tmp_num);
+                                }
+                                /*只支持两个元素的字高递减模式
                                 List<DBText> a = tmp_DCBH_Group.First().OrderByDescending(n => n.Position.Y).ToList();//可能没有次编号 a的数量永远大于等于b
                                 List<DBText> b = tmp_DCBH_Group.Last().OrderByDescending(n => n.Position.Y).ToList();
                                 int mark_b = 0;
@@ -447,7 +481,7 @@ namespace GeologyGraph2Excel
                                             DCBH.Add(a[i].TextString);
                                         }
                                     }
-                                }
+                                }*/
                             }
                             break;
                         }
@@ -557,7 +591,6 @@ namespace GeologyGraph2Excel
             }
             return result;
         }
-
         private string Jointext(List<DBText> dBTexts)
         {
             string tmp = "";
