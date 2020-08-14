@@ -29,12 +29,19 @@ namespace GeologyGraph2Excel
         public static bool isMatch_FCHD = true;
         public void Initialize()
         {
-            System.Windows.Forms.MessageBox.Show(
-                "1.插件启动命令为\"RG\"；\n" +
-                "2.适用于地层编号带椭圆、散列文字的情况；\n" +
-                "3.当同一钻孔地质柱状图由多页组成时，程序默认把靠右侧的一页的信息认为后续页；\n" +
-                "4.使用时，识别的表头和内容均不能在块里面，柱状图的外框必须为多段线（不能是二维多段线，请自行使用convert命令转换）。\n" +
-                "5.柱状图需要读取地层编号列的底部，不能有其余无关信息，比如编制人等单行文字，请手工删除。");
+            System.Windows.Forms.DialogResult result = System.Windows.Forms.MessageBox.Show(
+                 "1.插件启动命令为\"RG\"；\n" +
+                 "2.适用于地层编号带椭圆、散列文字的情况；\n" +
+                 "3.当同一钻孔地质柱状图由多页组成时，程序默认把靠右侧的一页的信息认为后续页；\n" +
+                 "4.使用时，识别的表头和内容均不能在块里面，柱状图的外框必须为多段线（不能是二维多段线，请自行使用convert命令转换）。\n" +
+                 "5.柱状图需要读取地层编号列的底部，不能有其余无关信息，比如编制人等单行文字，请手工删除。\n" +
+                 "6.除岩土名称一列内文字含冒号“：”，其余地方文字若含有冒号将影响输出结果。\n\n" +
+                 "源码托管在，是否前往：https://github.com/MoeLin/GeologyGraph2Excel"
+                 , "GeologyGraph2Excel", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
+
+            if (result == System.Windows.Forms.DialogResult.Yes)
+                System.Diagnostics.Process.Start("https://github.com/MoeLin/GeologyGraph2Excel");
+
         }
         public void Terminate()
         {
@@ -303,10 +310,11 @@ namespace GeologyGraph2Excel
                 + "无法识别图表共" + err_list.Count + "个：(按下ctrl+c复制信息)\n"
                 + tmp_err
                 );
-
+            /*
             System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo("Explorer.exe");
             psi.Arguments = "/e,/select," + outputcsv.FullName;
             System.Diagnostics.Process.Start(psi);
+			*/
 
         }
 
@@ -417,7 +425,7 @@ namespace GeologyGraph2Excel
                                 {
                                     list_num.Add(tmp_DCBH_Group.ElementAt(i).OrderByDescending(n => n.Position.Y).ToList());
                                 }
-                                
+
                                 for (int i = 0; i < list_num[0].Count(); i++)
                                 {
                                     string tmp_num = "";
@@ -428,7 +436,7 @@ namespace GeologyGraph2Excel
                                     {
                                         for (int k = 0; k < list_num[j].Count(); k++)
                                         {
-                                            if(list_num[j][k].Position.Y <= mark.Position.Y + list_num[j][k].Height
+                                            if (list_num[j][k].Position.Y <= mark.Position.Y + list_num[j][k].Height
                                                 && list_num[j][k].Position.Y >= mark.Position.Y - list_num[j][k].Height)
                                             {
                                                 tmp_num += "-" + list_num[j][k].TextString;
