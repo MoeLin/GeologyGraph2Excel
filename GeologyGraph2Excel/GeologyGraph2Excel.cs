@@ -91,7 +91,14 @@ namespace GeologyGraph2Excel
             Document acDoc = Application.DocumentManager.MdiActiveDocument;//获取当前的活动文档 
             Database acDb = Application.DocumentManager.MdiActiveDocument.Database;
             FileInfo outputdwg = new FileInfo(acDoc.Name);
-            FileInfo outputcsv = new FileInfo(outputdwg.FullName.Substring(0, outputdwg.FullName.Length - outputdwg.Extension.Length) + ".csv");
+            FileInfo outputcsv = new FileInfo(outputdwg.FullName.Substring(0, outputdwg.FullName.Length - outputdwg.Extension.Length) + ".csv");            
+            try
+            {
+                FileInfo outputlog = new FileInfo(outputdwg.FullName.Substring(0, outputdwg.FullName.Length - outputdwg.Extension.Length) + "_log.txt");
+                outputlog.Delete();
+            }
+            catch (System.Exception) { }   
+            
             List<string> Exist_ZK = new List<string>();
             List<List<Graph>> Graphs_Lists = new List<List<Graph>>();
             string output = "";
@@ -333,17 +340,23 @@ namespace GeologyGraph2Excel
             return outBound_Points;
         }
         private List<Graph> Text2List(List<DBText> dBTexts, List<MText> mTexts)
-        {
+        {            
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;//获取当前的活动文档 
+            FileInfo outputdwg = new FileInfo(acDoc.Name);
+            FileInfo outputlog = new FileInfo(outputdwg.FullName.Substring(0, outputdwg.FullName.Length - outputdwg.Extension.Length) + "_log.txt");
+            StreamWriter sw = new StreamWriter(outputlog.FullName, true, Encoding.Default);
             //===========================获取钻孔编号==========================================================
             string ZKBH_Name;
             try
             {
                 ZKBH_Name = Get_Content_By_Title(BH_Keyword, dBTexts, mTexts);
+                sw.WriteLine("钻孔编号:\r\n\t" + ZKBH_Name);//输出log信息
             }
             catch (System.Exception e)
             {
                 System.Exception exception = new System.Exception("钻孔编号位置Y误差过小，无法读取钻孔编号！");
                 exception.Source = "-1";
+                sw.Close();
                 throw exception;
             }
             //===========================获取孔口高程==========================================================
@@ -351,11 +364,13 @@ namespace GeologyGraph2Excel
             try
             {
                 KKGC = Get_Content_By_Title(KKGC_Keyword, dBTexts, mTexts);
+                sw.WriteLine("孔口高程:\r\n\t" + KKGC);//输出log信息
             }
             catch (System.Exception e)
             {
                 System.Exception exception = new System.Exception("孔口高程位置Y误差过小，无法读取钻孔编号！");
                 exception.Source = "-2";
+                sw.Close();
                 throw exception;
             }
             //===========================获取分层厚度==========================================================
@@ -378,11 +393,18 @@ namespace GeologyGraph2Excel
                 }
 
             }
+            sw.Write("分层厚度:\r\n\t");//输出log信息
+            foreach(double d in FCHD)
+            {
+                sw.Write(d.ToString() + "\t");
+            }
+            sw.Write("\r\n");
             //===========================获取分层厚度==========================================================
 
             List<string> DCBH = new List<string>();
             if (isRead_DCBH == true)
             {
+                sw.Write("地层编号:\r\n\t");//输出log信息
                 //===========================获取地层编号==========================================================
                 foreach (IGrouping<double, DBText> group in dBTexts.OrderBy(n => n.Position.X).ThenByDescending(n => n.Position.Y).GroupBy(n => Math.Round(n.Position.X, 0)))
                 {
@@ -403,6 +425,8 @@ namespace GeologyGraph2Excel
                                     foreach (DBText dB in a)
                                     {
                                         DCBH.Add(dB.TextString);
+                                        sw.Write(dB.TextString +"\t");//输出log信息
+                                        sw.WriteLine();//输出log信息
                                     }
                                 }
                                 else//地铁院的，地层编号竟然是一堆等高散的文字放一起
@@ -415,6 +439,8 @@ namespace GeologyGraph2Excel
                                             tmp = tmp + dB.TextString + "-";
                                         }
                                         DCBH.Add(tmp.Substring(0, tmp.Length - 1));
+                                        sw.Write(tmp.Substring(0, tmp.Length - 1) + "\t");//输出log信息
+                                        sw.WriteLine();//输出log信息
                                     }
                                 }
                             }
@@ -425,6 +451,22 @@ namespace GeologyGraph2Excel
                                 {
                                     list_num.Add(tmp_DCBH_Group.ElementAt(i).OrderByDescending(n => n.Position.Y).ToList());
                                 }
+
+                                //输出log信息
+                                for (int i = 0; i < list_num.Count(); i++)
+                                {
+                                    for (int j = 0; j < list_num[i].Count(); j++)
+                                    {
+                                        sw.Write(list_num[i][j].TextString + "\t");
+                                    }
+                                    if(i< list_num.Count() - 1)
+                                    {
+                                        sw.Write("\r\n\t");//输出log信息
+                                    }
+                                    
+                                }
+                                sw.WriteLine();
+                                //输出log信息
 
                                 for (int i = 0; i < list_num[0].Count(); i++)
                                 {
@@ -497,11 +539,13 @@ namespace GeologyGraph2Excel
                     }
 
                 }
+
                 //===========================获取地层编号==========================================================
             }
 
 
             //===========================获取岩土名称==========================================================
+            sw.Write("岩土名称:\r\n\t");//输出log信息
             List<string> YTMC = new List<string>();
             if (mTexts.Count != 0)//岩土名称是多行文字的情况
             {
@@ -512,12 +556,18 @@ namespace GeologyGraph2Excel
                     {
                         String pattern = @"([^\d;]+?)[:：]";
                         Match m = Regex.Match(mText.Contents, pattern);
+                        
                         if (m.Groups[1].Value != "")
+                        {
                             YTMC.Add(m.Groups[1].Value);
+                            sw.Write(m.Groups[1].Value + "\t");//输出log信息
+                        }
+                            
                     }
                     catch (System.Exception e)
                     {
                         System.Windows.Forms.MessageBox.Show(e.Message + "\n" + mText.Contents);
+                        sw.Close();
                         continue;
                     }
                 }
@@ -532,22 +582,30 @@ namespace GeologyGraph2Excel
                         String pattern = @"([^\d]+?)[:：]";
                         Match m = Regex.Match(dBText.TextString, pattern);
                         if (m.Groups[1].Value != "")
+                        {
                             YTMC.Add(m.Groups[1].Value);
+                            sw.Write(m.Groups[1].Value + "\t");//输出log信息
+                        }
+                        
                     }
                     catch (System.Exception e)
                     {
                         System.Windows.Forms.MessageBox.Show(e.Message + "\n" + dBText.TextString);
+                        sw.Close();
                         continue;
                     }
                 }
             }
             //===========================获取岩土名称==========================================================
+            sw.Write("\r\n===============================================================================================\r\n");//输出log信息
+            sw.Close();//输出log信息
+
             List<Graph> result = new List<Graph>();
             result.Add(new Graph(BH_Keyword, ZKBH_Name));
             result.Add(new Graph(KKGC_Keyword, KKGC.ToString()));
 
 
-            if (isMatch_FCHD == true)
+            if (isMatch_FCHD == true)//是否逐一匹配对应分层厚度与岩土名称输出结果否则出错处理
             {
                 if (DCBH.Count == YTMC.Count && DCBH.Count == FCHD.Count
                 && YTMC.Count == FCHD.Count && isRead_DCBH == true)
